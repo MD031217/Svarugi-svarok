@@ -17,11 +17,25 @@ Poetry создаёт `.venv/` внутри проекта; прежний `venv
 В PyCharm выберите интерпретатор `.venv/bin/python`.
 Swagger: <http://127.0.0.1:8000/docs>, OpenAPI: `/openapi.json`.
 
-**Состояние первоначальной настройки:** `poetry.lock` пока не создан: среда
-исполнения не имеет доступа к PyPI. Первый `poetry install` на машине с сетью
-разрешит зависимости, создаст lockfile и установит пакеты. Добавьте `poetry.lock`
-в Git; в дальнейшем используйте `poetry sync`. До этого транзитивные версии
-не зафиксированы. Не заменяйте lockfile пустым или вручную составленным файлом.
+## Запуск обучения
+
+```bash
+poetry run python main.py --epochs 3
+# Эквивалентный запуск отдельного скрипта:
+poetry run python -m scripts.train --epochs 3
+```
+
+По умолчанию используются `configs/models/yolo26l.pt` и `datasets/dataset.yaml`.
+Пути вычисляются от корня проекта, независимо от рабочей папки запуска.
+YAML определяет корень датасета по своему расположению; изображения находятся
+в `datasets/images/train` и `datasets/images/val`. Результаты сохраняются в
+`runs/detect/weld26` (при повторных запусках Ultralytics добавляет числовой суффикс).
+Можно передать `--model`, `--data`, `--epochs`, `--device` и необязательный `--source`
+для предсказания после обучения. Локальные пути в аргументах относятся к корню проекта.
+Обучение не запускается при импорте `main` или `app.main`; API запускается через Uvicorn.
+
+Версии зависимостей зафиксированы в `poetry.lock`. Сохраняйте его в Git;
+для синхронизации окружения с зафиксированными версиями используйте `poetry sync`.
 
 ## Docker
 
@@ -63,7 +77,7 @@ Linux-пакеты PyTorch из PyPI могут включать CUDA-завис
 ```bash
 curl -X POST http://127.0.0.1:8000/api/v1/predictions \
   -H 'Content-Type: image/jpeg' \
-  --data-binary '@dataset/1 (1).jpg'
+  --data-binary '@datasets/images/train/1 (1).jpg'
 ```
 
 До размещения весов API возвращает `503` на распознавание; `/health`, `/docs`
@@ -131,7 +145,7 @@ cd ..
 Повторить проверку без изменения исходников:
 
 ```bash
-poetry run python -m scripts.audit_dataset dataset --output docs/dataset-audit.json
+poetry run python -m scripts.audit_dataset train --output docs/train-audit.json
 ```
 
 Проверяются пары файлов, классы, координаты, декодирование изображений,
@@ -140,19 +154,17 @@ poetry run python -m scripts.audit_dataset dataset --output docs/dataset-audit.j
 При ошибках разметки, повреждённых изображениях или неполных парах код выхода — 1.
 Пустые метки допустимы и сами по себе ошибкой не считаются.
 
-Для обучения сначала подготовьте `data/weld/images/{train,val,test}`
-и соответствующие `data/weld/labels/{train,val,test}`, копируя пары JPG/TXT.
-Шаблон YAML: `configs/dataset.example.yaml`. Исходный `dataset/` не изменялся,
-разбиение на выборки автоматически не выполнялось. Делите по исходным видео
+Текущая структура: `datasets/images/{train,val}` и `datasets/labels/{train,val}`.
+Конфигурация находится в `datasets/dataset.yaml`. Разбиение пользователя сохранено;
+при последней проверке все 84 изображения val также присутствовали в train.
+Для независимой оценки устраните пересечение и делите данные по исходным видео
 или сварным соединениям, чтобы соседние кадры не попадали в разные выборки.
 
-После подготовки структуры, из корня проекта:
+Обучение и копирование весов первого эксперимента, из корня проекта:
 
 ```bash
-poetry run yolo detect train model=yolo26n.pt \
-  data=configs/dataset.example.yaml epochs=100 imgsz=640 device=cpu \
-  project=runs name=weld26
-cp runs/weld26/weights/best.pt models/best.pt
+poetry run python -m scripts.train --epochs 3 --device cpu
+cp runs/detect/weld26/weights/best.pt models/best.pt
 ```
 
 Обучение не запускалось. CPU подходит для проверки, полноценное обучение

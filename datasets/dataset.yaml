@@ -1,0 +1,11 @@
+# Dataset root is inferred from this YAML's directory. Training passes its absolute path.
+train: images/train # relative to path
+val: images/val # relative to path
+test: images/test # relative to path
+
+names:
+  0: adj
+  1: int
+  2: geo
+  3: pro
+  4: non

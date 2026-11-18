@@ -1,4 +1,4 @@
-"""Read-only audit of the original flat YOLO detection dataset."""
+"""Read-only audit of the original flat YOLO detection train."""
 
 import argparse
 import hashlib
@@ -99,7 +99,7 @@ def audit_dataset(root: Path) -> dict[str, object]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("dataset", type=Path, nargs="?", default=Path("dataset"))
+    parser.add_argument("train", type=Path, nargs="?", default=Path("train"))
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     try:
